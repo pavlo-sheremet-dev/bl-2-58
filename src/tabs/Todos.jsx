@@ -1,76 +1,58 @@
-import { Component } from 'react';
 import { nanoid } from 'nanoid';
 import { Grid, GridItem, SearchForm, Text, Todo } from 'components';
+import { useState } from 'react';
+import { useEffect } from 'react';
+import { useRef } from 'react';
 
-export class Todos extends Component {
-  state = {
-    todos: [],
-  };
+export const Todos = function () {
+  const [todos, setTodo] = useState(
+    () => JSON.parse(localStorage.getItem('todos')) ?? []
+  );
+  const isFirstRender = useRef(true);
 
-  componentDidMount() {
-    const todos = JSON.parse(localStorage.getItem('todos'));
-
-    if (todos) {
-      this.setState(() => ({ todos }));
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
-  }
 
-  componentDidUpdate(prevProps, prevState) {
-    const { todos } = this.state;
+    localStorage.setItem('todos', JSON.stringify(todos));
+  }, [todos]);
 
-    if (prevState.todos !== todos) {
-      localStorage.setItem('todos', JSON.stringify(todos));
-    }
-  }
-
-  addTodo = text => {
+  const addTodo = text => {
     const todo = {
       id: nanoid(),
       text,
     };
 
-    this.setState(({ todos }) => ({
-      todos: [...todos, todo],
-    }));
+    setTodo(prevTodos => [...prevTodos, todo]);
   };
 
-  handleSubmit = data => {
-    this.addTodo(data);
+  const deleteTodo = id => {
+    setTodo(prevTodos => prevTodos.filter(todo => todo.id !== id));
   };
 
-  deleteTodo = id => {
-    this.setState(prevState => ({
-      todos: prevState.todos.filter(todo => todo.id !== id),
-    }));
-  };
+  return (
+    <>
+      <SearchForm onSubmit={addTodo} />
 
-  render() {
-    const { todos, isEditing } = this.state;
+      {todos.length === 0 && (
+        <Text textAlign="center">There are no any todos ... </Text>
+      )}
 
-    return (
-      <>
-        <SearchForm onSubmit={this.handleSubmit} />
-
-        {todos.length === 0 && (
-          <Text textAlign="center">There are no any todos ... </Text>
-        )}
-
-        <Grid>
-          {todos.length > 0 &&
-            todos.map((todo, index) => (
-              <GridItem key={todo.id}>
-                <Todo
-                  id={todo.id}
-                  text={todo.text}
-                  counter={index + 1}
-                  onClick={this.deleteTodo}
-                  onEdit={() => this.handleEdit(todo)}
-                  disabled={isEditing}
-                />
-              </GridItem>
-            ))}
-        </Grid>
-      </>
-    );
-  }
-}
+      <Grid>
+        {todos.length > 0 &&
+          todos.map((todo, index) => (
+            <GridItem key={todo.id}>
+              <Todo
+                id={todo.id}
+                text={todo.text}
+                counter={index + 1}
+                onClick={deleteTodo}
+              />
+            </GridItem>
+          ))}
+      </Grid>
+    </>
+  );
+};
